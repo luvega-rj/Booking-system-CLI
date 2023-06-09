@@ -1,6 +1,8 @@
+# main.py
 import orga
 
 def menu():
+    # Display the menu options
     print("1. Register User")
     print("2. Add Event")
     print("3. View All Events")
@@ -9,7 +11,10 @@ def menu():
     print("6. Quit")
 
     while True:
+        # Prompt the user for selection
         selection = input("Your selection: ")
+        
+        # Execute corresponding functions based on the selection
         if selection == "1":
             register_user()
         elif selection == "2":
@@ -61,4 +66,3 @@ def book_events():
 
 # Run the menu
 menu()
-
