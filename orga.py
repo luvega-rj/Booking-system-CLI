@@ -119,4 +119,3 @@ def add_user(name, phone_number, email):
 # Create tables in the database
 create_tables()
 
-
