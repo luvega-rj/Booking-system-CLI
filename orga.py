@@ -1,65 +1,122 @@
-import main
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
 
-# Menu function
-def menu():
-    print("-- Event Booking App --")
-    print("\nSelect one of these options:")
-    print("1) Add a new event.")
-    print("2) See all events.")
-    print("3) Find event by name.")
-    print("4) See event organizers.")
-    print("5) Book events.")
-    print("6) Quit.")
+# Create the database engine
+engine = create_engine('sqlite:///events.db')
+Base = declarative_base()
 
-    while True:
-        try:
-            selection = int(input("\nYour selection: "))
-            if selection == 1:
-                add_new_event()
-            elif selection == 2:
-                get_all_events()
-            elif selection == 3:
-                find_event_by_name()
-            elif selection == 4:
-                see_event_organizers()
-            elif selection == 5:
-                book_event()
-            elif selection == 6:
-                print("Thank you for using the Event Booking App. Goodbye!")
-                break
-            else:
-                print("Invalid selection. Please try again.")
-        except ValueError:
-            print("Invalid input. Please enter a number.")
+# Define the Event model
+class Event(Base):
+    __tablename__ = 'events'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    location = Column(String)
+    cost_of_ticket = Column(Integer)
+
+    def __repr__(self):
+        return f"Event(id={self.id}, name='{self.name}', location='{self.location}', cost_of_ticket={self.cost_of_ticket})"
+
+
+# Define the User model
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    phone_number = Column(String)
+    email = Column(String)
+
+    def __repr__(self):
+        return f"User(id={self.id}, name='{self.name}', phone_number='{self.phone_number}', email='{self.email}')"
+
+
+# Define the Booking model
+class Booking(Base):
+    __tablename__ = 'bookings'
+
+    event_id = Column(Integer, ForeignKey('events.id'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    ticket_count = Column(Integer)
+
+    event = relationship('Event')
+    user = relationship('User')
+
+    def __repr__(self):
+        return f"Booking(event_id={self.event_id}, user_id={self.user_id}, ticket_count={self.ticket_count})"
+
+
+# Create the tables in the database
+def create_tables():
+    Base.metadata.create_all(engine)
+
 
 # Add a new event
-def add_new_event():
-    print("\nEnter event details:")
-    name = input("Enter event name: ")
-    location = input("Enter event location: ")
-    cost_of_ticket = int(input("Enter the cost of the ticket: "))
+def add_event(name, location, cost_of_ticket):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    event = Event(name=name, location=location, cost_of_ticket=cost_of_ticket)
+    session.add(event)
+    session.commit()
+    print("Event added successfully.")
 
-    main.add_event(name, location, cost_of_ticket)
 
 # Get all events
 def get_all_events():
-    main.get_all_events()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    events = session.query(Event).all()
+    print("All events:")
+    for event in events:
+        print(event)
 
-# Find event by name
-def find_event_by_name():
-    name = input("\nEnter event name to find: ")
-    main.get_events_by_name(name)
 
-# See event organizers
-def see_event_organizers():
-    name = input("\nEnter event name to see organizers: ")
-    main.get_events_by_organizers(name)
+# Get events by name
+def get_events_by_name(name):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    events = session.query(Event).filter(Event.name == name).all()
+    if events:
+        print(f"Events with name '{name}':")
+        for event in events:
+            print(event)
+    else:
+        print(f"No events found with the name '{name}'.")
+
 
 # Book events
-def book_event():
-    event_names = input("\nEnter event names to book (comma-separated): ").split(",")
-    total_cost = main.book_events(event_names)
-    print(f"\nTotal cost of booked events: {total_cost}")
+def book_events(event_names, ticket_counts, user_id):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user = session.query(User).get(user_id)
+    if user:
+        total_cost = 0
+        for event_name, ticket_count in zip(event_names, ticket_counts):
+            event = session.query(Event).filter(Event.name == event_name).first()
+            if event:
+                booking = Booking(event=event, user=user, ticket_count=int(ticket_count))
+                session.add(booking)
+                total_cost += event.cost_of_ticket * int(ticket_count)
+        session.commit()
+        print("Events booked successfully.")
+        return total_cost
+    else:
+        print(f"User with ID {user_id} does not exist.")
+        return None
 
-# Call the menu function
-menu()
+
+# Add a new user
+def add_user(name, phone_number, email):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    user = User(name=name, phone_number=phone_number, email=email)
+    session.add(user)
+    session.commit()
+    print("User added successfully.")
+
+
+# Create tables in the database
+create_tables()
+
+
